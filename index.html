@@ -211,6 +211,46 @@
     flex-wrap: wrap;
   }
 
+  .option-row {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    user-select: none;
+  }
+
+  .option-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .option-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  .ramp-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--bg-elev-2);
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .ramp-badge.visible { opacity: 1; }
+
   .preset {
     padding: 6px 12px;
     background: var(--bg);
@@ -456,11 +496,34 @@
   }
 
   @media (max-width: 900px) {
-    main { flex-direction: column; }
-    .sidebar { width: 100%; max-height: 50vh; }
-    .reader-frame { font-size: 36px; }
-    .reader { padding: 40px 20px; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
+    html, body { height: auto; overflow: auto; }
+    main { flex-direction: column; overflow: visible; }
+    .sidebar {
+      width: 100%;
+      max-height: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section { padding: 16px 18px; }
+    .sidebar-section:last-child { flex: 0 1 auto; }
+    textarea { min-height: 120px; max-height: 200px; }
+    .stage { padding: 20px 16px 32px; }
+    .reader { padding: 32px 18px; }
+    .reader-frame { font-size: 38px; height: 120px; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat { padding: 10px 12px; }
+    .stat-value { font-size: 16px; }
+    .shortcuts { display: none; }
+    header { padding: 14px 18px; }
+    .subtitle { display: none; }
+    .buttons { position: sticky; bottom: 0; }
+  }
+
+  @media (max-width: 480px) {
+    .reader-frame { font-size: 30px; height: 100px; }
+    .wpm-display { font-size: 22px; }
+    .presets { gap: 4px; }
+    .preset { padding: 5px 10px; font-size: 11px; }
   }
 </style>
 </head>
@@ -502,6 +565,12 @@
         <button class="preset" data-wpm="600">600</button>
         <button class="preset" data-wpm="800">800</button>
         <button class="preset" data-wpm="1000">1000</button>
+      </div>
+      <div class="option-row">
+        <label>
+          <input type="checkbox" id="rampToggle" checked>
+          <span>Sanfter Start (Aufwärmphase 3&nbsp;s)</span>
+        </label>
       </div>
     </div>
 
@@ -553,7 +622,7 @@
           <div class="stat-value" id="totalWords">0</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Aktuelle WPM</div>
+          <div class="stat-label">Aktuelle WPM <span class="ramp-badge" id="rampBadge">Aufwärmen</span></div>
           <div class="stat-value" id="currentWpm">400</div>
         </div>
         <div class="stat">
@@ -620,6 +689,9 @@ const state = {
   timer: null,
   startTime: null,
   elapsedOffset: 0,
+  rampEnabled: true,
+  rampStartTime: null,
+  rampDurationMs: 3000,
 };
 
 // ======== DOM ========
@@ -642,6 +714,8 @@ const el = {
   totalWords: document.getElementById('totalWords'),
   elapsed: document.getElementById('elapsed'),
   status: document.getElementById('status'),
+  rampToggle: document.getElementById('rampToggle'),
+  rampBadge: document.getElementById('rampBadge'),
 };
 
 // ======== Render ========
@@ -710,6 +784,25 @@ function stopElapsedTimer() {
   }
 }
 
+// ======== Ramp-Up (Aufwärmphase) ========
+function getEffectiveWpm() {
+  if (!state.rampEnabled || state.rampStartTime === null) return state.wpm;
+  const elapsed = Date.now() - state.rampStartTime;
+  if (elapsed >= state.rampDurationMs) return state.wpm;
+  const progress = elapsed / state.rampDurationMs;
+  // Ease-in-out: beginnt langsam, beschleunigt, endet sanft bei Ziel-WPM
+  const eased = progress < 0.5
+    ? 2 * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+  const startWpm = Math.max(120, Math.round(state.wpm * 0.35));
+  return startWpm + (state.wpm - startWpm) * eased;
+}
+
+function isRamping() {
+  if (!state.rampEnabled || state.rampStartTime === null) return false;
+  return (Date.now() - state.rampStartTime) < state.rampDurationMs;
+}
+
 // ======== Playback ========
 function tick() {
   if (!state.running) return;
@@ -721,8 +814,14 @@ function tick() {
   renderWord(word);
   updateProgress();
 
-  const baseMs = 60000 / state.wpm;
+  const effWpm = getEffectiveWpm();
+  const baseMs = 60000 / effWpm;
   const duration = getWordDurationMs(word, baseMs);
+
+  // Live-Anzeige der aktuellen WPM + Ramp-Badge
+  el.currentWpm.textContent = Math.round(effWpm);
+  if (isRamping()) el.rampBadge.classList.add('visible');
+  else el.rampBadge.classList.remove('visible');
 
   state.index++;
   state.timer = setTimeout(tick, duration);
@@ -734,7 +833,8 @@ function start() {
   if (!text) return;
 
   // Reset bei neuem Text oder wenn am Ende
-  if (state.words.length === 0 || state.index >= state.words.length) {
+  const freshStart = state.words.length === 0 || state.index >= state.words.length;
+  if (freshStart) {
     state.words = tokenize(text);
     state.index = 0;
     state.elapsedOffset = 0;
@@ -743,12 +843,24 @@ function start() {
 
   if (state.words.length === 0) return;
 
+  // Ramp-Up nur bei frischem Start, nicht beim Fortsetzen nach Pause
+  if (freshStart && state.rampEnabled) {
+    state.rampStartTime = Date.now();
+  }
+
   state.running = true;
   state.startTime = Date.now() - state.elapsedOffset;
   el.status.textContent = 'Läuft';
   el.startBtn.textContent = 'Pause';
   startElapsedTimer();
+  scrollToReaderOnMobile();
   tick();
+}
+
+function scrollToReaderOnMobile() {
+  if (window.innerWidth > 900) return;
+  const reader = document.querySelector('.reader');
+  if (reader) reader.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function pause() {
@@ -764,6 +876,9 @@ function finish() {
   state.running = false;
   clearTimeout(state.timer);
   stopElapsedTimer();
+  state.rampStartTime = null;
+  el.rampBadge.classList.remove('visible');
+  el.currentWpm.textContent = state.wpm;
   el.status.textContent = 'Fertig';
   el.startBtn.textContent = 'Neu starten';
   state.index = state.words.length;
@@ -777,6 +892,9 @@ function reset() {
   state.index = 0;
   state.elapsedOffset = 0;
   state.words = [];
+  state.rampStartTime = null;
+  el.rampBadge.classList.remove('visible');
+  el.currentWpm.textContent = state.wpm;
   el.status.textContent = 'Bereit';
   el.startBtn.textContent = 'Start';
   el.progressFill.style.width = '0%';
@@ -821,6 +939,14 @@ el.presets.forEach(btn => {
   btn.addEventListener('click', () => {
     setWpm(parseInt(btn.dataset.wpm));
   });
+});
+
+el.rampToggle.addEventListener('change', (e) => {
+  state.rampEnabled = e.target.checked;
+  if (!state.rampEnabled) {
+    state.rampStartTime = null;
+    el.rampBadge.classList.remove('visible');
+  }
 });
 
 // ======== Buttons ========
