@@ -411,6 +411,7 @@
   .ramp-badge {
     display: inline-block;
     padding: 2px 8px;
+    margin-top: 6px;
     border-radius: 10px;
     background: var(--bg-elev-2);
     color: var(--primary);
@@ -419,10 +420,31 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
     opacity: 0;
+    visibility: hidden;
     transition: opacity 0.2s;
   }
 
-  .ramp-badge.visible { opacity: 1; }
+  .ramp-badge.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .ramp-badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    margin-right: 6px;
+    vertical-align: middle;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
 
   .preset {
     padding: 6px 12px;
@@ -796,8 +818,9 @@
           <div class="stat-value" id="totalWords">0</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Aktuelle WPM <span class="ramp-badge" id="rampBadge">Aufwärmen</span></div>
+          <div class="stat-label">Aktuelle WPM</div>
           <div class="stat-value" id="currentWpm">400</div>
+          <div class="ramp-badge" id="rampBadge">Aufwärmen</div>
         </div>
         <div class="stat">
           <div class="stat-label">Vergangen</div>
@@ -1051,8 +1074,8 @@ function start() {
 
   if (state.words.length === 0) return;
 
-  // Ramp-Up nur bei frischem Start, nicht beim Fortsetzen nach Pause
-  if (freshStart && state.rampEnabled) {
+  // Ramp-Up bei jedem Start – auch nach Pause, damit das Auge sich neu einfindet
+  if (state.rampEnabled) {
     state.rampStartTime = Date.now();
   }
 
