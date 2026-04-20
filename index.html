@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none';">
 <meta name="referrer" content="no-referrer">
-<title>SpeedReader – RSVP mit ORP</title>
+<title>Asklaion SpeedReader – RSVP mit ORP</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -70,7 +70,180 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    color: var(--text);
+    text-decoration: none;
+    transition: opacity 0.15s;
   }
+
+  .logo:hover { opacity: 0.8; }
+
+  .logo-brand {
+    color: var(--accent);
+  }
+
+  /* Info button + modal */
+  .info-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+    font-family: Georgia, serif;
+    font-size: 18px;
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  .info-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-header {
+    padding: 22px 28px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .modal-title .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--success);
+  }
+
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 18px;
+    padding: 0;
+  }
+
+  .modal-close:hover {
+    color: var(--text);
+    border-color: var(--primary);
+  }
+
+  .modal-body {
+    padding: 20px 28px 26px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .modal-body p {
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .modal-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px;
+  }
+
+  .modal-body li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .modal-body li:last-child { border-bottom: none; }
+
+  .modal-body li::before {
+    content: '✓';
+    color: var(--success);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .modal-body strong { color: var(--text); }
+
+  .modal-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .modal-footer a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .modal-footer a:hover { text-decoration: underline; }
 
   .logo-dot {
     width: 10px;
@@ -530,12 +703,13 @@
 <body>
 
 <header>
-  <div class="logo">
+  <a class="logo" href="https://asklaion.de" target="_blank" rel="noopener noreferrer" title="asklaion.de">
     <span class="logo-dot"></span>
-    SpeedReader
-  </div>
+    <span><span class="logo-brand">Asklaion</span> SpeedReader</span>
+  </a>
   <div class="header-right">
     <div class="subtitle">RSVP mit ORP · Spritz-Technik</div>
+    <button class="info-btn" id="infoBtn" title="Datenschutz-Hinweise" aria-label="Datenschutz-Hinweise anzeigen">i</button>
     <button class="theme-toggle" id="themeToggle" title="Theme wechseln" aria-label="Theme wechseln">
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="4"></circle>
@@ -643,6 +817,40 @@
     </div>
   </section>
 </main>
+
+<div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="infoTitle">
+        <span class="dot"></span>
+        Datenschutz & Sicherheit
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Schließen">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Diese App wurde mit Fokus auf den Schutz sensibler Daten (z.&nbsp;B. Arztbriefe, Patientendaten) entwickelt. Der eingegebene Text verlässt deinen Browser nicht.</p>
+      <ul>
+        <li><strong>Komplett lokal im Browser</strong> – keine Server-Kommunikation, kein Backend.</li>
+        <li><strong>Kein Tracking, keine Analytics</strong>, keine externen Fonts, keine CDNs.</li>
+        <li><strong>Content-Security-Policy</strong> mit <code>connect-src 'none'</code> blockiert jeden Netzwerkverkehr nach dem initialen Laden.</li>
+        <li><strong>Rechtschreibprüfung deaktiviert</strong> – Chromes „Enhanced Spellcheck" würde Text sonst an Google senden.</li>
+        <li><strong>Autocomplete & Autocorrect aus</strong> – kein Abgleich mit Browser-Wörterbüchern oder Cloud-Services.</li>
+        <li><strong>Grammarly & ähnliche Extensions</strong> werden explizit ausgesperrt (<code>data-gramm="false"</code>).</li>
+        <li><strong>No-Referrer-Policy</strong> – keine Übertragung von Herkunftsinformationen.</li>
+        <li><strong>Open Source</strong> – der Code ist öffentlich einsehbar und überprüfbar.</li>
+      </ul>
+      <p><strong>Empfehlung für Praxis-Einsatz:</strong> Im Inkognito-Fenster ohne Browser-Extensions nutzen, um jegliches Restrisiko durch Drittanbieter-Erweiterungen auszuschließen.</p>
+    </div>
+    <div class="modal-footer">
+      <span>Asklaion SpeedReader</span>
+      <span>
+        <a href="https://asklaion.de" target="_blank" rel="noopener noreferrer">asklaion.de</a>
+        ·
+        <a href="https://github.com/lollylan/speeeeeeed" target="_blank" rel="noopener noreferrer">Quellcode</a>
+      </span>
+    </div>
+  </div>
+</div>
 
 <script>
 // ======== ORP-Algorithmus (Spritz-Prinzip) ========
@@ -970,6 +1178,23 @@ document.addEventListener('keydown', (e) => {
   else if (e.code === 'ArrowLeft') { e.preventDefault(); step(-1); }
   else if (e.code === 'ArrowRight') { e.preventDefault(); step(1); }
   else if (e.code === 'KeyR') { e.preventDefault(); reset(); }
+});
+
+// ======== Info-Modal ========
+const infoBtn = document.getElementById('infoBtn');
+const infoModal = document.getElementById('infoModal');
+const modalClose = document.getElementById('modalClose');
+
+function openModal() { infoModal.classList.add('open'); }
+function closeModal() { infoModal.classList.remove('open'); }
+
+infoBtn.addEventListener('click', openModal);
+modalClose.addEventListener('click', closeModal);
+infoModal.addEventListener('click', (e) => {
+  if (e.target === infoModal) closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Escape' && infoModal.classList.contains('open')) closeModal();
 });
 
 // ======== Theme ========
